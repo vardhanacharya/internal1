@@ -1,0 +1,277 @@
+## CI/CD Pipeline Java Maven Project — Simple Execution Steps
+
+## 1. Create Project Folder
+
+```bash
+mkdir java-cicd-app
+cd java-cicd-app
+```
+
+---
+
+## 2. Create Maven Folder Structure
+
+```bash
+mkdir -p src/main/java/com/example
+```
+
+Project structure:
+
+```text
+java-cicd-app
+│── pom.xml
+│── Dockerfile
+│── Jenkinsfile
+└── src
+    └── main
+        └── java
+            └── com
+                └── example
+                    └── App.java
+```
+
+---
+
+## 3. Create Java File
+
+```bash
+nano src/main/java/com/example/App.java
+```
+
+Paste this:
+
+```java
+package com.example;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("CI/CD Pipeline Running Successfully");
+    }
+}
+```
+
+Save:
+
+```text
+CTRL + O
+Enter
+CTRL + X
+```
+
+---
+
+## 4. Create Simple pom.xml
+
+```bash
+nano pom.xml
+```
+
+Paste this simple XML:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>java-cicd-app</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+</project>
+```
+
+---
+
+## 5. Build Maven Project
+
+```bash
+mvn clean package
+```
+
+This creates:
+
+```text
+target/java-cicd-app-1.0.jar
+```
+
+---
+
+## 6. Run Java Program
+
+```bash
+java -cp target/java-cicd-app-1.0.jar com.example.App
+```
+
+Output:
+
+```text
+CI/CD Pipeline Running Successfully
+```
+
+---
+
+## 7. Create Dockerfile
+
+```bash
+nano Dockerfile
+```
+
+Paste:
+
+```dockerfile
+FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+COPY target/java-cicd-app-1.0.jar app.jar
+
+CMD ["java", "-cp", "app.jar", "com.example.App"]
+```
+
+---
+
+## 8. Build Docker Image
+
+```bash
+docker build -t java-cicd-app .
+```
+
+---
+
+## 9. Run Docker Container
+
+```bash
+docker run java-cicd-app
+```
+
+Output:
+
+```text
+CI/CD Pipeline Running Successfully
+```
+
+---
+
+## 10. Initialize Git
+
+```bash
+git init
+git add .
+git commit -m "Java Maven CI CD project"
+```
+
+---
+
+## 11. Push to GitHub
+
+Create one empty GitHub repository.
+
+Then run:
+
+```bash
+git branch -M main
+git remote add origin YOUR_GITHUB_REPO_URL
+git push -u origin main
+```
+
+---
+
+## 12. Initialize Docker Swarm
+
+```bash
+docker swarm init
+```
+
+---
+
+## 13. Deploy Using Docker Swarm
+
+```bash
+docker service create --name java-service --replicas 2 java-cicd-app
+```
+
+---
+
+## 14. Check Service
+
+```bash
+docker service ls
+```
+
+---
+
+## 15. Create Jenkinsfile
+
+```bash
+nano Jenkinsfile
+```
+
+Paste:
+
+```groovy
+pipeline {
+    agent any
+
+    stages {
+        stage('Build Maven') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t java-cicd-app .'
+            }
+        }
+
+        stage('Deploy Docker Swarm') {
+            steps {
+                sh 'docker service rm java-service || true'
+                sh 'docker service create --name java-service --replicas 2 java-cicd-app'
+            }
+        }
+    }
+}
+```
+
+---
+
+## 16. Push Jenkinsfile to GitHub
+
+```bash
+git add .
+git commit -m "Added Jenkins pipeline"
+git push
+```
+
+---
+
+## 17. Jenkins Execution Steps
+
+1. Open Jenkins.
+2. Click **New Item**.
+3. Enter name: `java-cicd-pipeline`
+4. Select **Pipeline**.
+5. Click **OK**.
+6. Go to **Pipeline** section.
+7. Select **Pipeline script from SCM**.
+8. SCM: **Git**
+9. Paste your GitHub repo URL.
+10. Branch: `main`
+11. Script Path: `Jenkinsfile`
+12. Click **Save**.
+13. Click **Build Now**.
+
+---
+
+## Final Output
+
+```text
+CI/CD Pipeline Running Successfully
+```
+
+This is the simplest full execution from scratch.
