@@ -1,0 +1,377 @@
+## Full Steps From Starting
+
+## Aim
+
+Develop a Java Maven application and automate CI/CD using GitHub, Jenkins, Docker, and Docker Swarm.
+
+---
+
+# Step 1: Create Maven Project
+
+```bash
+mkdir java-cicd-app2
+cd java-cicd-app2
+mkdir -p src/main/java
+```
+
+---
+
+# Step 2: Create Java Program
+
+```bash
+nano src/main/java/App.java
+```
+
+Paste:
+
+```java
+public class App {
+    public static void main(String[] args) throws Exception {
+        System.out.println("Java CI/CD Pipeline Running Successfully");
+
+        while (true) {
+            Thread.sleep(60000);
+        }
+    }
+}
+```
+
+Save:
+
+```text
+control + O
+enter
+control + X
+```
+
+---
+
+# Step 3: Create `pom.xml`
+
+```bash
+nano pom.xml
+```
+
+Paste:
+
+```xml
+<project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>java-cicd-app</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.3.0</version>
+                <configuration>
+                    <archive>
+                        <manifest>
+                            <mainClass>App</mainClass>
+                        </manifest>
+                    </archive>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+```
+
+---
+
+# Step 4: Test Maven Build
+
+```bash
+mvn clean package
+```
+
+Run jar:
+
+```bash
+java -jar target/java-cicd-app-1.0.jar
+```
+
+Expected:
+
+```text
+Java CI/CD Pipeline Running Successfully
+```
+
+Stop it:
+
+```text
+control + C
+```
+
+---
+
+# Step 5: Create Dockerfile
+
+```bash
+nano Dockerfile
+```
+
+Paste:
+
+```dockerfile
+FROM eclipse-temurin:17
+COPY target/java-cicd-app-1.0.jar app.jar
+CMD ["java", "-jar", "app.jar"]
+```
+
+---
+
+# Step 6: Test Docker Locally
+
+```bash
+docker build -t java-cicd-app:latest .
+```
+
+Run:
+
+```bash
+docker run --rm java-cicd-app:latest
+```
+
+Expected:
+
+```text
+Java CI/CD Pipeline Running Successfully
+```
+
+Stop:
+
+```text
+control + C
+```
+
+---
+
+# Step 7: Initialize Docker Swarm
+
+```bash
+docker swarm init
+```
+
+If already initialized, ignore the error.
+
+---
+
+# Step 8: Deploy on Docker Swarm
+
+```bash
+docker service create --name java-service --replicas 1 java-cicd-app:latest
+```
+
+Check:
+
+```bash
+docker service ls
+```
+
+Expected:
+
+```text
+java-service   replicated   1/1   java-cicd-app:latest
+```
+
+Remove service before Jenkins testing:
+
+```bash
+docker service rm java-service
+```
+
+---
+
+# Step 9: Create Jenkinsfile
+
+```bash
+nano Jenkinsfile
+```
+
+Paste:
+
+```groovy
+pipeline {
+    agent any
+
+    triggers {
+        cron('H/5 * * * *')
+    }
+
+    stages {
+        stage('Build Maven') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t java-cicd-app:latest .'
+            }
+        }
+
+        stage('Deploy Docker Swarm') {
+            steps {
+                sh '''
+                docker swarm init || true
+                docker service rm java-service || true
+                docker service create --name java-service --replicas 1 java-cicd-app:latest
+                '''
+            }
+        }
+
+        stage('Check Service') {
+            steps {
+                sh 'docker service ls'
+            }
+        }
+    }
+}
+```
+
+---
+
+# Step 10: Push Project to GitHub
+
+```bash
+git init
+git add .
+git commit -m "Java Maven CI CD Docker Swarm project"
+git branch -M main
+git remote add origin https://github.com/vardhanacharya/program2.git
+git push -u origin main
+```
+
+If remote already exists:
+
+```bash
+git remote set-url origin https://github.com/vardhanacharya/program2.git
+git push
+```
+
+---
+
+# Step 11: Open Jenkins
+
+Start Jenkins:
+
+```bash
+brew services start jenkins-lts
+```
+
+Open browser:
+
+```text
+http://localhost:8080
+```
+
+---
+
+# Step 12: Create Jenkins Pipeline Job
+
+1. Click **New Item**
+2. Enter name:
+
+```text
+program2
+```
+
+3. Select **Pipeline**
+4. Click **OK**
+5. Go to **Pipeline** section
+6. Select:
+
+```text
+Pipeline script from SCM
+```
+
+7. SCM:
+
+```text
+Git
+```
+
+8. Repository URL:
+
+```text
+https://github.com/vardhanacharya/program2.git
+```
+
+9. Branch:
+
+```text
+*/main
+```
+
+10. Script Path:
+
+```text
+Jenkinsfile
+```
+
+11. Click **Save**
+
+---
+
+# Step 13: Run Jenkins Pipeline
+
+Click:
+
+```text
+Build Now
+```
+
+Expected Jenkins stages:
+
+```text
+Build Maven - Success
+Build Docker Image - Success
+Deploy Docker Swarm - Success
+Check Service - Success
+Finished: SUCCESS
+```
+
+---
+
+# Step 14: Final Check
+
+In terminal:
+
+```bash
+docker service ls
+```
+
+Expected:
+
+```text
+java-service   replicated   1/1   java-cicd-app:latest
+```
+
+Check logs:
+
+```bash
+docker service logs java-service
+```
+
+Expected:
+
+```text
+Java CI/CD Pipeline Running Successfully
+```
+
+---
+
+## Final Result
+
+The Java Maven application is built automatically by Jenkins, Docker image is created, and the application is deployed successfully on Docker Swarm with cron-based Jenkins trigger.
