@@ -1,0 +1,111 @@
+pipeline {
+    agent any
+
+    triggers {
+        cron('*/5 * * * *')
+    }
+
+    stages {
+
+        stage('Build Maven') {
+            steps {
+                sh 'mvn clean package'
+            }
+        }
+
+        stage('Build Docker Image') {
+            steps {
+                sh 'docker build -t yourdockerhubusername/java-k8s-cron-app:v1 .'
+            }
+        }
+
+        stage('Push Docker Image') {
+            steps {
+                sh 'docker push yourdockerhubusername/java-k8s-cron-app:v1'
+            }
+        }
+
+        stage('Deploy Kubernetes') {
+            steps {
+                sh 'kubectl apply -f deployment.yaml'
+                sh 'kubectl apply -f service.yaml'
+            }
+        }
+
+    }
+}
+
+
+apiVersion: v1
+kind: Service
+
+metadata:
+  name: java-service
+
+spec:
+  selector:
+    app: java-app
+
+  ports:
+  - port: 8080
+    targetPort: 8080
+
+  type: NodePort
+
+
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: java-app
+
+spec:
+  replicas: 2
+
+  selector:
+    matchLabels:
+      app: java-app
+
+  template:
+    metadata:
+      labels:
+        app: java-app
+
+    spec:
+      containers:
+      - name: java-app
+        image: yourdockerhubusername/java-k8s-cron-app:v1
+
+
+                  FROM eclipse-temurin:17-jdk
+
+WORKDIR /app
+
+COPY target/java-k8s-cron-app-1.0.jar app.jar
+
+CMD ["java","-cp","app.jar","com.example.App"]
+
+                  <project xmlns="http://maven.apache.org/POM/4.0.0">
+    <modelVersion>4.0.0</modelVersion>
+
+    <groupId>com.example</groupId>
+    <artifactId>java-k8s-cron-app</artifactId>
+    <version>1.0</version>
+
+    <properties>
+        <maven.compiler.source>17</maven.compiler.source>
+        <maven.compiler.target>17</maven.compiler.target>
+    </properties>
+</project>
+                  package com.example;
+
+public class App {
+    public static void main(String[] args) {
+        System.out.println("CI/CD Pipeline Triggered Successfully by Jenkins Cron");
+    }
+}
+
+
+
+
+                  
